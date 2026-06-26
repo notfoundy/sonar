@@ -1,2 +1,5 @@
+/sonar
+*.exe
+/dist/
 .env
 .secrets/
