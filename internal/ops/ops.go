@@ -102,7 +102,8 @@ func (o *Ops) StartDB() error {
 	if o.Rt.ContainerExists(c.DBContainer) {
 		return o.Rt.RunCaptured("start", c.DBContainer)
 	}
-	return o.Rt.RunCaptured("run", "-d",
+	return o.Rt.RunCaptured(
+		"run", "-d",
 		"--name", c.DBContainer,
 		"--network", c.Network,
 		"--restart", "unless-stopped",
@@ -124,7 +125,8 @@ func (o *Ops) StartServer() error {
 		return o.Rt.RunCaptured("start", c.ServerContainer)
 	}
 	jdbc := fmt.Sprintf("jdbc:postgresql://%s:5432/%s", c.DBContainer, c.PostgresDB)
-	return o.Rt.RunCaptured("run", "-d",
+	return o.Rt.RunCaptured(
+		"run", "-d",
 		"--name", c.ServerContainer,
 		"--network", c.Network,
 		"--restart", "unless-stopped",
@@ -245,10 +247,11 @@ func (o *Ops) BuildScanArgs(projectDir, key, name string, t ScanTarget, extra []
 	if t.Network != "" {
 		args = append(args, "--network", t.Network)
 	}
-	args = append(args,
+	args = append(
+		args,
 		"-e", "SONAR_HOST_URL="+t.HostURL,
 		"-e", "SONAR_TOKEN="+t.Token,
-		"-v", projectDir+":/usr/src",
+		"-v", projectDir+":/usr/src:z",
 		o.Cfg.ScannerImage,
 		"-Dsonar.projectKey="+key,
 		"-Dsonar.projectName="+name,
