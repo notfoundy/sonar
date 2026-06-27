@@ -1,5 +1,6 @@
-BINARY := sonar
-DIST   := dist
+BINARY   := sonar
+DIST     := dist
+COVERAGE := coverage.out
 
 # Local build for the current OS/arch.
 .PHONY: build
@@ -17,6 +18,16 @@ vet:
 .PHONY: test
 test:
 	go test ./...
+
+# Produce the coverage report consumed by the scanner (sonar.go.coverage.reportPaths).
+.PHONY: coverage
+coverage:
+	go test -coverprofile=$(COVERAGE) ./...
+
+# Generate coverage then scan the local server (requires 'sonar up').
+.PHONY: scan
+scan: build coverage
+	./$(BINARY) scan
 
 .PHONY: run
 run: build

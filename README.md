@@ -68,6 +68,22 @@ On the local target an **ephemeral analysis token** is minted before the scan an
 right after** — no long-lived token is stored. A `sonar-project.properties` at the project
 root is honored.
 
+### Coverage
+
+The scanner **ingests** coverage reports — it never runs your tests (exactly like a CI scan
+step). Each project generates its report with its own toolchain and points the scanner at it
+via its `sonar-project.properties`, so the `sonar` CLI stays language-agnostic:
+
+| Language | Generate the report   | `sonar-project.properties`                                |
+| -------- | --------------------- | --------------------------------------------------------- |
+| Go       | `go test -coverprofile=coverage.out ./...` | `sonar.go.coverage.reportPaths=coverage.out` |
+| Java     | `mvn test` (JaCoCo)   | `sonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml` |
+| JS/TS    | `jest --coverage`     | `sonar.javascript.lcov.reportPaths=coverage/lcov.info`    |
+
+This repo is configured for Go: run `make coverage` (or a CI step) to produce `coverage.out`
+**before** scanning, then `sonar scan`. `make scan` does both. Without a report, SonarQube
+records 0 % coverage and the quality gate fails.
+
 ### Remote SonarQube
 
 `--remote` sends the report to a real server using env vars (your own token, no
