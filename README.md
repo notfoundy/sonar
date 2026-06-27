@@ -51,15 +51,22 @@ your user config dir (`os.UserConfigDir()/sonar-local/admin-password`). The UI i
 ### Scan
 
 ```bash
-sonar scan                     # current directory
+sonar scan                     # current directory, current git branch
 sonar scan ~/code/api          # a given path
-sonar scan --key my-key ~/app  # explicit project key
+sonar scan --branch hotfix     # force a branch label
+sonar scan --key my-key ~/app  # explicit project key (branch ignored)
 sonar scan -- -Dsonar.sources=src -Dsonar.exclusions='**/*.test.js'
 ```
 
-The project key defaults to the (cleaned) directory name. On the local target an
-**ephemeral analysis token** is minted before the scan and **revoked right after** — no
-long-lived token is stored. A `sonar-project.properties` at the project root is honored.
+The project key defaults to `<dir>:<git-branch>` (e.g. `api:main`). SonarQube **Community
+Edition tracks a single branch per project**, so baking the branch into the key gives each
+branch its own project. Outside a git repo (or in detached HEAD) the key falls back to the
+directory name alone. Use `--branch` to override the detected branch, or `--key` to set the
+whole key yourself.
+
+On the local target an **ephemeral analysis token** is minted before the scan and **revoked
+right after** — no long-lived token is stored. A `sonar-project.properties` at the project
+root is honored.
 
 ### Remote SonarQube
 
@@ -79,8 +86,9 @@ These can also live in a `.env` file in the current directory.
 ```
 sonar scan [PATH] [options] [-- scanner-args...]
   --remote        Target the remote SonarQube (SONAR_HOST_URL / SONAR_TOKEN)
-  --key NAME      Project key (default: cleaned directory name)
+  --key NAME      Project key (default: <dir>:<git-branch>); overrides the branch
   --name NAME     Displayed project name
+  --branch BR     Branch to bake into the key (default: current git branch)
   --plain         Disable the TUI (also auto-disabled when stdout isn't a terminal)
 ```
 

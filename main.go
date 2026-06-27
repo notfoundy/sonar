@@ -115,6 +115,11 @@ func cmdScan(args []string) error {
 			if j < len(args) {
 				opts.Name = args[j]
 			}
+		case "--branch":
+			j++
+			if j < len(args) {
+				opts.Branch = args[j]
+			}
 		default:
 			if strings.HasPrefix(args[j], "-") {
 				return fmt.Errorf("unknown option: %s", args[j])
@@ -192,8 +197,9 @@ Usage:
 
 scan options:
   --remote          Target the remote SonarQube via SONAR_HOST_URL / SONAR_TOKEN
-  --key NAME        Project key (default: cleaned directory name)
+  --key NAME        Project key (default: <dir>:<git-branch>); overrides the branch
   --name NAME       Displayed project name
+  --branch BR       Branch to bake into the key (default: current git branch)
   --plain           Disable the interactive UI
   -- <args...>      Everything after -- is passed to sonar-scanner
 `)

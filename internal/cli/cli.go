@@ -68,6 +68,7 @@ type ScanOptions struct {
 	Path        string
 	Key         string
 	Name        string
+	Branch      string
 	Remote      bool
 	ScannerArgs []string
 }
@@ -80,10 +81,17 @@ func Scan(o *ops.Ops, opts ScanOptions, tty bool) error {
 	}
 
 	key := opts.Key
-	if key == "" {
-		key = ops.ProjectKey(projectDir)
-	}
 	name := opts.Name
+	if key == "" {
+		branch := opts.Branch
+		if branch == "" {
+			branch = ops.GitBranch(projectDir)
+		}
+		key = ops.ProjectKey(projectDir, branch)
+		if name == "" && branch != "" {
+			name = fmt.Sprintf("%s (%s)", filepath.Base(projectDir), branch)
+		}
+	}
 	if name == "" {
 		name = key
 	}

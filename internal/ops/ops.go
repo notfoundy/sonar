@@ -5,6 +5,7 @@ package ops
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -261,7 +262,26 @@ func (o *Ops) BuildScanArgs(projectDir, key, name string, t ScanTarget, extra []
 
 var keyClean = regexp.MustCompile(`[^A-Za-z0-9._:-]`)
 
-// ProjectKey derives a valid project key from a directory path.
-func ProjectKey(path string) string {
-	return keyClean.ReplaceAllString(filepath.Base(path), "_")
+// ProjectKey derives a valid project key from a directory path. When branch is non-empty
+// it is appended as "<dir>:<branch>" so each git branch maps to its own Sonar project
+func ProjectKey(dir, branch string) string {
+	key := keyClean.ReplaceAllString(filepath.Base(dir), "_")
+	if branch != "" {
+		key += ":" + keyClean.ReplaceAllString(branch, "_")
+	}
+	return key
+}
+
+// GitBranch returns the current branch of the repo at dir, or "" if dir is not a git
+// working tree or is in a detached HEAD state.
+func GitBranch(dir string) string {
+	out, err := exec.Command("git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	branch := strings.TrimSpace(string(out))
+	if branch == "HEAD" { // detached HEAD: not a named branch
+		return ""
+	}
+	return branch
 }
