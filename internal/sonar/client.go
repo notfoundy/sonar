@@ -43,6 +43,22 @@ func (c *Client) Status() (string, error) {
 	return body.Status, nil
 }
 
+// CheckAdmin reports whether admin/<pass> are valid credentials (used to make the
+// bootstrap idempotent without storing anything locally).
+func (c *Client) CheckAdmin(pass string) bool {
+	req, err := http.NewRequest(http.MethodGet, c.BaseURL+"/api/users/current", nil)
+	if err != nil {
+		return false
+	}
+	req.SetBasicAuth("admin", pass)
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
+}
+
 // ChangeAdminPassword swaps the admin password (authenticated with the previous one).
 func (c *Client) ChangeAdminPassword(previous, next string) error {
 	_, err := c.postForm("admin", previous, "/api/users/change_password", url.Values{

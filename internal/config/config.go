@@ -5,7 +5,6 @@ package config
 import (
 	"bufio"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -31,6 +30,8 @@ type Config struct {
 	RemoteURL       string
 	RemoteToken     string
 	RuntimeOverride string
+
+	AdminPassword string
 }
 
 // Load builds a Config from defaults, an optional ./.env file, and process env.
@@ -60,6 +61,8 @@ func Load() *Config {
 		RemoteURL:       env("SONAR_HOST_URL", ""),
 		RemoteToken:     env("SONAR_TOKEN", ""),
 		RuntimeOverride: env("SONAR_RUNTIME", ""),
+
+		AdminPassword: env("SONAR_ADMIN_PASSWORD", ""),
 	}
 }
 
@@ -68,15 +71,6 @@ func (c *Config) LocalURL() string { return "http://localhost:" + c.Port }
 
 // InternalURL is the URL the scanner container uses to reach the server on the shared network.
 func (c *Config) InternalURL() string { return "http://" + c.ServerContainer + ":9000" }
-
-// AdminPasswordFile returns the cross-platform path where the admin password is stored.
-func AdminPasswordFile() (string, error) {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "sonar-local", "admin-password"), nil
-}
 
 func env(key, def string) string {
 	if v, ok := os.LookupEnv(key); ok && v != "" {

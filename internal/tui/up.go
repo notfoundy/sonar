@@ -14,8 +14,8 @@ import (
 func RunUp(o *ops.Ops) error {
 	steps := ops.DefaultUpSteps(o)
 	final := successStyle.Render("✓ SonarQube is ready") + "\n" +
-		"  UI:       " + o.Cfg.LocalURL() + "  (login: admin)\n" +
-		"  Password: " + o.AdminPasswordPath() + "\n"
+		"  UI:    " + o.Cfg.LocalURL() + "\n" +
+		"  Login: admin / $SONAR_ADMIN_PASSWORD\n"
 
 	m, err := tea.NewProgram(newUpModel(steps, final)).Run()
 	if err != nil {

@@ -30,8 +30,7 @@ func Up(o *ops.Ops, tty bool) error {
 			return err
 		}
 	}
-	fmt.Println("Ready. UI: " + o.Cfg.LocalURL() + " (login: admin)")
-	fmt.Println("Admin password stored in " + o.AdminPasswordPath())
+	fmt.Println("Ready. UI: " + o.Cfg.LocalURL() + " (login: admin / $SONAR_ADMIN_PASSWORD)")
 	return nil
 }
 

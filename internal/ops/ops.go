@@ -3,8 +3,6 @@
 package ops
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -175,38 +173,30 @@ func (o *Ops) ContainerState(name string) string {
 	}
 }
 
-// BootstrapAdmin replaces the default admin/admin password on first run (idempotent).
+// BootstrapAdmin sets the admin password from SONAR_ADMIN_PASSWORD on first run.
+// Idempotent: if those credentials already work, it does nothing.
 func (o *Ops) BootstrapAdmin() error {
-	if o.hasAdminPassword() {
-		return nil
+	pass := o.Cfg.AdminPassword
+	if pass == "" {
+		return fmt.Errorf("SONAR_ADMIN_PASSWORD is not set (define it in .env)")
 	}
-	newPass, err := randomPassword()
-	if err != nil {
-		return err
+	if o.Client.CheckAdmin(pass) {
+		return nil // already configured with this password
 	}
-	if err := o.Client.ChangeAdminPassword("admin", newPass); err != nil {
-		return fmt.Errorf("failed to change the default admin password (already changed manually?): %w", err)
+	if err := o.Client.ChangeAdminPassword("admin", pass); err != nil {
+		return fmt.Errorf("failed to set the admin password: %w\n"+
+			"  - HTTP 400: the password does not meet SonarQube's policy\n"+
+			"  - HTTP 401: admin was already changed to another value; reset with 'sonar down --purge' then 'sonar up'", err)
 	}
-	return o.storeAdminPassword(newPass)
+	return nil
 }
 
-// AdminPassword reads the stored admin password.
+// AdminPassword returns the configured admin password.
 func (o *Ops) AdminPassword() (string, error) {
-	p, err := config.AdminPasswordFile()
-	if err != nil {
-		return "", err
+	if o.Cfg.AdminPassword == "" {
+		return "", fmt.Errorf("SONAR_ADMIN_PASSWORD is not set (define it in .env)")
 	}
-	b, err := os.ReadFile(p)
-	if err != nil {
-		return "", fmt.Errorf("admin password not found (run 'sonar up' first): %w", err)
-	}
-	return strings.TrimSpace(string(b)), nil
-}
-
-// AdminPasswordPath exposes where the admin password is stored (for messages).
-func (o *Ops) AdminPasswordPath() string {
-	p, _ := config.AdminPasswordFile()
-	return p
+	return o.Cfg.AdminPassword, nil
 }
 
 // MintToken generates an ephemeral analysis token.
@@ -227,8 +217,7 @@ func (o *Ops) RevokeToken(name string) error {
 	return o.Client.RevokeToken(pass, name)
 }
 
-// Teardown stops and removes the containers; with purge it also drops volumes, the network
-// and the stored admin password.
+// Teardown stops and removes the containers; with purge it also drops the volumes and network.
 func (o *Ops) Teardown(purge bool) error {
 	c := o.Cfg
 	o.Rt.Remove(c.ServerContainer)
@@ -238,9 +227,6 @@ func (o *Ops) Teardown(purge bool) error {
 			o.Rt.VolumeRemove(v)
 		}
 		o.Rt.NetworkRemove(c.Network)
-		if p, err := config.AdminPasswordFile(); err == nil {
-			_ = os.Remove(p)
-		}
 	}
 	return nil
 }
@@ -275,32 +261,4 @@ var keyClean = regexp.MustCompile(`[^A-Za-z0-9._:-]`)
 // ProjectKey derives a valid project key from a directory path.
 func ProjectKey(path string) string {
 	return keyClean.ReplaceAllString(filepath.Base(path), "_")
-}
-
-func (o *Ops) hasAdminPassword() bool {
-	p, err := config.AdminPasswordFile()
-	if err != nil {
-		return false
-	}
-	_, err = os.Stat(p)
-	return err == nil
-}
-
-func (o *Ops) storeAdminPassword(pass string) error {
-	p, err := config.AdminPasswordFile()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-		return err
-	}
-	return os.WriteFile(p, []byte(pass), 0o600)
-}
-
-func randomPassword() (string, error) {
-	b := make([]byte, 18)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
 }
